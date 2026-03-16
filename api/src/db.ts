@@ -21,7 +21,14 @@ interface DB {
   users: Record<string, UserRecord>;
 }
 
+const EMPTY_DB: DB = { users: {} };
+
 function readDB(): DB {
+  if (!fs.existsSync(DB_PATH)) {
+    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+    fs.writeFileSync(DB_PATH, JSON.stringify(EMPTY_DB, null, 2), "utf-8");
+    return EMPTY_DB;
+  }
   const raw = fs.readFileSync(DB_PATH, "utf-8");
   return JSON.parse(raw) as DB;
 }
