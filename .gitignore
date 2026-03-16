@@ -1,0 +1,13 @@
+# Node
+node_modules/
+dist/
+
+# Env
+.env
+.env.local
+
+# macOS
+.DS_Store
+
+# Data (don't commit real user data)
+api/data/db.json

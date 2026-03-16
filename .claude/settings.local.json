@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pandoc --track-changes=all \"probabilistic-thinking-build-checklist.docx\" -o checklist.md)",
+      "Read(//Users/frankcorrigan/Desktop/**)",
+      "Read(//Users/frankcorrigan/**)",
+      "Bash(npm --version)",
+      "Bash(npm install:*)",
+      "Bash(source ~/.nvm/nvm.sh)",
+      "Bash(nvm use:*)",
+      "Bash(npm run:*)",
+      "Bash(WEBHOOK_SECRET=dev-secret node scripts/smoke-test.js)",
+      "Bash(pkill -f \"node dist/server.js\")",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

@@ -1,0 +1,187 @@
+openapi: 3.1.0
+info:
+  title: Probabilistic Thinking Course API
+  description: Progress tracking API for the Probabilistic Thinking ChatGPT course
+  version: 1.0.0
+servers:
+  - url: https://YOUR-RENDER-URL
+    description: Production API
+
+paths:
+  /progress:
+    get:
+      operationId: getProgress
+      summary: Load learner's full session state
+      description: >
+        Call this at the start of every session. Returns the learner's current
+        lesson, completed count, and full module/lesson status map.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Session state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressResponse"
+        "401":
+          description: Invalid or missing token
+
+  /progress/complete:
+    post:
+      operationId: markLessonComplete
+      summary: Mark a lesson as completed
+      description: >
+        Call this after the learner has demonstrated understanding of a lesson.
+        Do not call this preemptively — only after the check question is answered
+        correctly. Returns the updated current lesson.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lessonId]
+              properties:
+                lessonId:
+                  type: string
+                  description: "Lesson ID in format M.L (e.g. '1.1', '2.3')"
+                  example: "1.1"
+                quizScore:
+                  type: number
+                  description: Optional 0–100 score from the check question
+                  example: 85
+      responses:
+        "200":
+          description: Lesson marked complete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompleteResponse"
+        "400":
+          description: Missing lessonId
+        "401":
+          description: Invalid or missing token
+
+  /progress/jump:
+    post:
+      operationId: jumpToLesson
+      summary: Jump to a specific lesson
+      description: >
+        Use only when a learner explicitly asks to skip or revisit a lesson.
+        Does not mark any lessons complete.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lessonId]
+              properties:
+                lessonId:
+                  type: string
+                  example: "3.1"
+      responses:
+        "200":
+          description: Current lesson updated
+        "400":
+          description: Unknown lessonId
+        "401":
+          description: Invalid or missing token
+
+  /progress/curriculum:
+    get:
+      operationId: getCurriculum
+      summary: Return the full 31-lesson curriculum map
+      description: >
+        Returns all 6 modules with their lesson IDs and titles. Useful for
+        displaying the full course overview to the learner.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Curriculum map
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurriculumResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >
+        The learner's UUID access token, issued at purchase. The learner provides
+        this at the start of the session. Pass it as: Authorization: Bearer <token>
+
+  schemas:
+    ProgressResponse:
+      type: object
+      properties:
+        email:
+          type: string
+        currentLesson:
+          type: string
+          example: "1.1"
+        completedCount:
+          type: integer
+        totalLessons:
+          type: integer
+          example: 31
+        modules:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModuleStatus"
+
+    ModuleStatus:
+      type: object
+      properties:
+        module:
+          type: integer
+        title:
+          type: string
+        unlocked:
+          type: boolean
+        lessons:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              completed:
+                type: boolean
+
+    CompleteResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        lessonId:
+          type: string
+        currentLesson:
+          type: string
+        completedCount:
+          type: integer
+
+    CurriculumResponse:
+      type: object
+      properties:
+        curriculum:
+          type: array
+          items:
+            type: object
+            properties:
+              module:
+                type: integer
+              title:
+                type: string
+              lessons:
+                type: array
+                items:
+                  type: string
