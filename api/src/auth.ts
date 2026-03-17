@@ -10,13 +10,14 @@ export function bearerAuth(req: Request, res: Response, next: NextFunction): voi
     return;
   }
 
-  const user = getUserByToken(token);
-  if (!user) {
-    res.status(401).json({ error: "Invalid token" });
-    return;
-  }
-
-  // Attach user to request for downstream handlers
-  (req as Request & { userToken: string }).userToken = token;
-  next();
+  getUserByToken(token).then((user) => {
+    if (!user) {
+      res.status(401).json({ error: "Invalid token" });
+      return;
+    }
+    (req as Request & { userToken: string }).userToken = token;
+    next();
+  }).catch(() => {
+    res.status(500).json({ error: "Auth check failed" });
+  });
 }

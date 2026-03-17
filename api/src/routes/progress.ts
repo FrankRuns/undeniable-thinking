@@ -18,20 +18,23 @@ function getToken(req: Request): string {
 }
 
 // GET /progress — load full session state
-router.get("/", (req: Request, res: Response) => {
+router.get("/", async (req: Request, res: Response) => {
   const token = getToken(req);
-  const user = getUserByToken(token)!;
+  const user = await getUserByToken(token);
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
   const completedIds = user.completedLessons.map((l) => l.lessonId);
-  const modulesWithStatus = CURRICULUM.map((m) => ({
-    module: m.module,
-    title: m.title,
-    unlocked: isModuleUnlocked(token, m.module),
-    lessons: m.lessons.map((id) => ({
-      id,
-      completed: completedIds.includes(id),
-    })),
-  }));
+  const modulesWithStatus = await Promise.all(
+    CURRICULUM.map(async (m) => ({
+      module: m.module,
+      title: m.title,
+      unlocked: await isModuleUnlocked(token, m.module),
+      lessons: m.lessons.map((id) => ({
+        id,
+        completed: completedIds.includes(id),
+      })),
+    }))
+  );
 
   res.json({
     email: user.email,
@@ -43,7 +46,7 @@ router.get("/", (req: Request, res: Response) => {
 });
 
 // POST /progress/complete — mark a lesson done
-router.post("/complete", (req: Request, res: Response) => {
+router.post("/complete", async (req: Request, res: Response) => {
   const token = getToken(req);
   const { lessonId, quizScore } = req.body as { lessonId?: string; quizScore?: number };
 
@@ -52,7 +55,7 @@ router.post("/complete", (req: Request, res: Response) => {
     return;
   }
 
-  const updated = markLessonComplete(token, lessonId, quizScore);
+  const updated = await markLessonComplete(token, lessonId, quizScore);
   if (!updated) {
     res.status(404).json({ error: "User not found" });
     return;
@@ -67,7 +70,7 @@ router.post("/complete", (req: Request, res: Response) => {
 });
 
 // POST /progress/jump — jump to a specific lesson
-router.post("/jump", (req: Request, res: Response) => {
+router.post("/jump", async (req: Request, res: Response) => {
   const token = getToken(req);
   const { lessonId } = req.body as { lessonId?: string };
 
@@ -82,7 +85,7 @@ router.post("/jump", (req: Request, res: Response) => {
     return;
   }
 
-  const updated = jumpToLesson(token, lessonId);
+  const updated = await jumpToLesson(token, lessonId);
   if (!updated) {
     res.status(404).json({ error: "User not found" });
     return;

@@ -1,7 +1,27 @@
-import fs from "fs";
-import path from "path";
+import { Pool } from "pg";
 
-const DB_PATH = path.join(__dirname, "../data/db.json");
+// ─── Connection ───────────────────────────────────────────────────────────────
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL?.includes("localhost")
+    ? false
+    : { rejectUnauthorized: false },
+});
+
+export async function initDB(): Promise<void> {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      token           TEXT        PRIMARY KEY,
+      email           TEXT        NOT NULL,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      current_lesson  TEXT        NOT NULL DEFAULT '1.1',
+      completed_lessons JSONB     NOT NULL DEFAULT '[]'
+    )
+  `);
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface LessonRecord {
   lessonId: string;
@@ -17,95 +37,84 @@ export interface UserRecord {
   completedLessons: LessonRecord[];
 }
 
-interface DB {
-  users: Record<string, UserRecord>;
-}
-
-const EMPTY_DB: DB = { users: {} };
-
-function readDB(): DB {
-  if (!fs.existsSync(DB_PATH)) {
-    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-    fs.writeFileSync(DB_PATH, JSON.stringify(EMPTY_DB, null, 2), "utf-8");
-    return EMPTY_DB;
-  }
-  const raw = fs.readFileSync(DB_PATH, "utf-8");
-  return JSON.parse(raw) as DB;
-}
-
-function writeDB(db: DB): void {
-  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), "utf-8");
-}
-
-export function createUser(token: string, email: string): UserRecord {
-  const db = readDB();
-  const user: UserRecord = {
-    token,
-    email,
-    createdAt: new Date().toISOString(),
-    currentLesson: "1.1",
-    completedLessons: [],
+function rowToUser(row: Record<string, unknown>): UserRecord {
+  return {
+    token: row.token as string,
+    email: row.email as string,
+    createdAt: (row.created_at as Date).toISOString(),
+    currentLesson: row.current_lesson as string,
+    completedLessons: row.completed_lessons as LessonRecord[],
   };
-  db.users[token] = user;
-  writeDB(db);
-  return user;
 }
 
-export function getUserByToken(token: string): UserRecord | null {
-  const db = readDB();
-  return db.users[token] ?? null;
+// ─── CRUD ─────────────────────────────────────────────────────────────────────
+
+export async function createUser(token: string, email: string): Promise<UserRecord> {
+  const res = await pool.query(
+    `INSERT INTO users (token, email) VALUES ($1, $2)
+     ON CONFLICT (token) DO UPDATE SET email = EXCLUDED.email
+     RETURNING *`,
+    [token, email]
+  );
+  return rowToUser(res.rows[0]);
 }
 
-export function markLessonComplete(
+export async function getUserByToken(token: string): Promise<UserRecord | null> {
+  const res = await pool.query(`SELECT * FROM users WHERE token = $1`, [token]);
+  return res.rows.length ? rowToUser(res.rows[0]) : null;
+}
+
+export async function markLessonComplete(
   token: string,
   lessonId: string,
   quizScore?: number
-): UserRecord | null {
-  const db = readDB();
-  const user = db.users[token];
+): Promise<UserRecord | null> {
+  const user = await getUserByToken(token);
   if (!user) return null;
 
   const alreadyDone = user.completedLessons.some((l) => l.lessonId === lessonId);
-  if (!alreadyDone) {
-    user.completedLessons.push({
-      lessonId,
-      completedAt: new Date().toISOString(),
-      quizScore,
-    });
-  }
+  const newRecord: LessonRecord = {
+    lessonId,
+    completedAt: new Date().toISOString(),
+    ...(quizScore !== undefined && { quizScore }),
+  };
+
+  const updatedLessons = alreadyDone
+    ? user.completedLessons
+    : [...user.completedLessons, newRecord];
 
   const next = getNextLesson(lessonId);
-  if (next) user.currentLesson = next;
-
-  db.users[token] = user;
-  writeDB(db);
-  return user;
+  const res = await pool.query(
+    `UPDATE users
+     SET completed_lessons = $1, current_lesson = $2
+     WHERE token = $3
+     RETURNING *`,
+    [JSON.stringify(updatedLessons), next ?? user.currentLesson, token]
+  );
+  return rowToUser(res.rows[0]);
 }
 
-export function jumpToLesson(token: string, lessonId: string): UserRecord | null {
-  const db = readDB();
-  const user = db.users[token];
-  if (!user) return null;
-
-  user.currentLesson = lessonId;
-  db.users[token] = user;
-  writeDB(db);
-  return user;
+export async function jumpToLesson(token: string, lessonId: string): Promise<UserRecord | null> {
+  const res = await pool.query(
+    `UPDATE users SET current_lesson = $1 WHERE token = $2 RETURNING *`,
+    [lessonId, token]
+  );
+  return res.rows.length ? rowToUser(res.rows[0]) : null;
 }
 
-export function getAllUsers(): UserRecord[] {
-  const db = readDB();
-  return Object.values(db.users);
+export async function getAllUsers(): Promise<UserRecord[]> {
+  const res = await pool.query(`SELECT * FROM users ORDER BY created_at DESC`);
+  return res.rows.map(rowToUser);
 }
 
 // ─── Curriculum ───────────────────────────────────────────────────────────────
 
 export const CURRICULUM = [
-  { module: 1, title: "Mental Models for Uncertainty", lessons: ["1.1","1.2","1.3","1.4","1.5"] },
-  { module: 2, title: "Calibration and Overconfidence",  lessons: ["2.1","2.2","2.3","2.4","2.5","2.6"] },
-  { module: 3, title: "Decision Trees and Expected Value", lessons: ["3.1","3.2","3.3","3.4","3.5"] },
-  { module: 4, title: "Bayesian Reasoning",               lessons: ["4.1","4.2","4.3","4.4","4.5","4.6"] },
-  { module: 5, title: "Reference Class Forecasting",      lessons: ["5.1","5.2","5.3","5.4"] },
+  { module: 1, title: "Mental Models for Uncertainty",        lessons: ["1.1","1.2","1.3","1.4","1.5"] },
+  { module: 2, title: "Calibration and Overconfidence",       lessons: ["2.1","2.2","2.3","2.4","2.5","2.6"] },
+  { module: 3, title: "Decision Trees and Expected Value",    lessons: ["3.1","3.2","3.3","3.4","3.5"] },
+  { module: 4, title: "Bayesian Reasoning",                   lessons: ["4.1","4.2","4.3","4.4","4.5","4.6"] },
+  { module: 5, title: "Reference Class Forecasting",          lessons: ["5.1","5.2","5.3","5.4"] },
   { module: 6, title: "Communicating Probabilistic Thinking", lessons: ["6.1","6.2","6.3","6.4","6.5"] },
 ];
 
@@ -116,9 +125,9 @@ export function getNextLesson(current: string): string | null {
   return allLessons[idx + 1];
 }
 
-export function isModuleUnlocked(token: string, moduleNumber: number): boolean {
+export async function isModuleUnlocked(token: string, moduleNumber: number): Promise<boolean> {
   if (moduleNumber === 1) return true;
-  const user = getUserByToken(token);
+  const user = await getUserByToken(token);
   if (!user) return false;
   const prevModule = CURRICULUM.find((m) => m.module === moduleNumber - 1);
   if (!prevModule) return false;

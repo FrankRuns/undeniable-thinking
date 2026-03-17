@@ -65,7 +65,7 @@ router.post("/", async (req: Request, res: Response) => {
   }
 
   const token = uuidv4();
-  createUser(token, email);
+  await createUser(token, email);
 
   await sendWelcomeEmail(email, token);
 

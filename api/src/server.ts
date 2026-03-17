@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import progressRouter from "./routes/progress";
 import webhookRouter from "./routes/webhook";
+import { initDB } from "./db";
 
 const app = express();
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
@@ -42,9 +43,16 @@ app.use((_req, res) => {
   res.status(404).json({ error: "Not found" });
 });
 
-app.listen(PORT, () => {
-  console.log(`API running on port ${PORT}`);
-  console.log(`SITE_ORIGIN: ${SITE_ORIGIN}`);
-});
+initDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`API running on port ${PORT}`);
+      console.log(`SITE_ORIGIN: ${SITE_ORIGIN}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to initialize database:", err);
+    process.exit(1);
+  });
 
 export default app;
