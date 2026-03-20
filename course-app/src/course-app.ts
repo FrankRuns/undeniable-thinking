@@ -42,46 +42,29 @@ interface Lesson {
   module: number;
   title: string;
   concept: string;
-  puzzleType: "slider-certainty" | "phrase-match" | "classify-bias" | "ev-calc" | "commit";
+  puzzleType: "belief-poll" | "risk-cascade";
 }
 
 const LESSONS: Lesson[] = [
   {
     id: "1.1",
     module: 1,
-    title: "Why Certainty Is a Trap",
-    concept: `Most decisions are made under uncertainty, but our brains are wired to seek certainty. When we say "this will work" or "that won't happen," we're not being confident — we're being imprecise. Probabilistic thinking means expressing beliefs as a range of possibilities with rough likelihoods. It's more accurate, and it leads to better decisions.`,
-    puzzleType: "slider-certainty",
+    title: "The 30-Day Streak That Kills You",
+    concept: `Your workplace has a "Days Since Last Incident" counter on the wall. It just hit 30. Everyone's proud — the trend is going the right direction. But there's a model of risk that says the longer the streak, the more dangerous things actually become. Not because the system is getting worse, but because the streak is. Complacency sets in. Maintenance gets deferred. Warning signs get normalized. The absence of bad events feels like evidence of safety — and that feeling is the hazard.`,
+    puzzleType: "belief-poll",
   },
   {
     id: "1.2",
     module: 1,
-    title: "Probability as a Language",
-    concept: `Probability is a way of expressing how confident you are that something is true. A probability of 70% means: if I faced this situation 10 times, I'd expect this outcome about 7 times. When you assign numbers to your beliefs, you can track whether your confidence is actually calibrated. Most people's intuitive probabilities are poorly calibrated — especially at the extremes.`,
-    puzzleType: "phrase-match",
-  },
-  {
-    id: "1.3",
-    module: 1,
-    title: "Overconfidence and Underconfidence",
-    concept: `The two ways to be miscalibrated are overconfidence (your 90% calls are right only 60% of the time) and underconfidence (your 50% calls are right 80% of the time). Overconfidence is more common — especially in predictions about our own abilities and plans. But underconfidence has real costs too: excessive hedging, missed opportunities. Good probabilistic thinkers aim to be neither.`,
-    puzzleType: "classify-bias",
-  },
-  {
-    id: "1.4",
-    module: 1,
-    title: "Expected Value: The Core Calculation",
-    concept: `Expected value is what you get when you multiply each outcome by its probability and sum them. A 50% chance of winning $200 has an expected value of $100 — the same as a guaranteed $100. Expected value is the backbone of rational decision-making under uncertainty. Crucially: a good decision can have a bad outcome, and vice versa. Evaluate the process, not just the result.`,
-    puzzleType: "ev-calc",
-  },
-  {
-    id: "1.5",
-    module: 1,
-    title: "Module 1 Synthesis",
-    concept: `You've covered four ideas: probabilistic thinking means expressing beliefs as likelihoods rather than certainties; probability is a language for calibration; there are two failure modes — overconfidence and underconfidence; and expected value gives you a framework to compare options when outcomes are uncertain. The test of whether this landed is whether you'll actually use it.`,
-    puzzleType: "commit",
+    title: "Why Your Project Is Always Two Weeks Away",
+    concept: `Every project manager has lived this: the finish line keeps moving. You knock out one blocker and two more appear. The team says "two more weeks" in week 4, week 8, and week 14. This isn't just bad planning — it's math. When a project has multiple steps and each step has a small chance of delay, the probabilities compound. A 10% daily chance of a problem sounds manageable. Over a 10-day sprint it means you have less than a 35% chance of finishing on time. The burndown chart shows you one line. It should show you a distribution.`,
+    puzzleType: "risk-cascade",
   },
 ];
+
+// Fast lookup map — avoids any Array.find() issues
+const LESSON_MAP: Record<string, Lesson> = {};
+for (const l of LESSONS) LESSON_MAP[l.id] = l;
 
 // ─── App state ────────────────────────────────────────────────────────────────
 
@@ -95,7 +78,7 @@ const state = {
   puzzleComplete: false,
 };
 
-const app = new App({ name: "Probabilistic Thinking", version: "0.1.0" });
+const app = new App({ name: "Affective Analytics", version: "0.1.0" });
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -365,197 +348,122 @@ const STYLES = `
     margin-bottom: 24px;
     background: var(--gray-50);
   }
-  /* ── Slider puzzle ── */
-  .scenario {
-    margin-bottom: 20px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--gray-200);
-  }
-  .scenario:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-  .scenario-text {
-    font-size: 14px;
-    font-style: italic;
-    color: var(--gray-800);
-    margin-bottom: 10px;
-    line-height: 1.6;
-  }
-  .slider-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .slider-label { font-size: 12px; color: var(--gray-400); width: 30px; text-align: center; }
-  input[type="range"] {
-    flex: 1;
-    accent-color: var(--green);
-  }
-  .slider-val {
+  /* ── Belief Poll (1.1) ── */
+  .belief-question {
     font-size: 15px;
-    font-weight: 700;
-    color: var(--green);
-    width: 44px;
-    text-align: center;
-  }
-  /* ── Phrase match ── */
-  .phrase-grid {
-    display: grid;
-    gap: 10px;
-  }
-  .phrase-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .phrase-word {
-    font-size: 14px;
     font-weight: 600;
-    width: 130px;
-    flex-shrink: 0;
-  }
-  .phrase-select {
-    flex: 1;
-    padding: 8px 10px;
-    border: 1.5px solid var(--gray-200);
-    border-radius: 8px;
-    font: inherit;
-    font-size: 13px;
-    background: white;
-    outline: none;
-    cursor: pointer;
-  }
-  .phrase-select:focus { border-color: var(--green-mid); }
-  .phrase-reveal {
-    font-size: 12px;
-    color: var(--green);
-    width: 90px;
-    text-align: right;
-    font-weight: 600;
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-  .phrase-reveal.visible { opacity: 1; }
-  /* ── Classify bias ── */
-  .scenario-classify { margin-bottom: 16px; }
-  .scenario-classify-text {
-    font-size: 14px;
-    line-height: 1.6;
-    margin-bottom: 8px;
     color: var(--gray-800);
-  }
-  .classify-opts {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  .classify-btn {
-    padding: 6px 14px;
-    font-size: 13px;
-    border-radius: 20px;
-    border: 1.5px solid var(--gray-200);
-    background: white;
-    color: var(--gray-800);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .classify-btn:hover { border-color: var(--green-mid); }
-  .classify-btn.selected { background: var(--green); color: white; border-color: var(--green); }
-  .classify-btn.correct { background: #D1FAE5; color: var(--green); border-color: var(--green); }
-  .classify-btn.wrong { background: #FEE2E2; color: #B91C1C; border-color: #FCA5A5; }
-  .classify-feedback {
-    font-size: 13px;
-    margin-top: 6px;
-    font-style: italic;
-    color: var(--gray-600);
-    min-height: 18px;
-  }
-  /* ── EV calc ── */
-  .ev-scenario {
-    font-size: 14px;
-    line-height: 1.6;
     margin-bottom: 16px;
-    padding: 14px;
-    background: white;
-    border-radius: 10px;
-    border: 1px solid var(--gray-200);
+    line-height: 1.5;
   }
-  .ev-inputs { display: grid; gap: 12px; margin-bottom: 16px; }
-  .ev-row {
+  .belief-opts {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 10px;
+    margin-bottom: 4px;
   }
-  .ev-label { font-size: 13px; font-weight: 600; flex: 1; }
-  .ev-input {
-    width: 110px;
-    padding: 8px 10px;
+  .belief-opt {
+    padding: 12px 16px;
     border: 1.5px solid var(--gray-200);
-    border-radius: 8px;
-    font: inherit;
-    font-size: 13px;
-    text-align: right;
-    outline: none;
+    border-radius: 10px;
+    background: white;
+    font-size: 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: all .15s;
+    font-family: inherit;
   }
-  .ev-input:focus { border-color: var(--green-mid); }
-  .ev-result {
+  .belief-opt:hover:not(:disabled) { border-color: var(--green-mid); background: #F0FDF4; }
+  .belief-opt.selected { border-color: var(--green); background: #DCFCE7; font-weight: 600; }
+  .belief-opt.wrong { border-color: #FCA5A5; background: #FEE2E2; }
+  .belief-reveal { display: none; margin-top: 16px; }
+  .belief-reveal.visible { display: block; }
+  .gauge-wrap { margin: 0 auto 16px; max-width: 300px; text-align: center; }
+  .gauge-label {
+    font-size: 11px;
+    color: var(--gray-500);
+    margin-bottom: 6px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .gauge-bar-track {
+    height: 20px;
+    background: var(--gray-200);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+  .gauge-bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #86EFAC 0%, #FACC15 55%, #EF4444 100%);
+    transition: width 1.4s ease;
+    width: 0%;
+  }
+  .gauge-days {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--gray-400);
+  }
+  .gauge-insight {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--gray-700);
     background: white;
     border: 1.5px solid var(--gray-200);
     border-radius: 10px;
     padding: 14px 16px;
-    display: none;
   }
-  .ev-result.visible { display: block; }
-  .ev-result-num {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--green);
+  .gauge-insight strong { color: var(--green-dark); }
+  /* ── Risk Cascade (1.2) ── */
+  .cascade-setup {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--gray-700);
+    margin-bottom: 16px;
+  }
+  .cascade-display {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 20px 16px;
+    background: white;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 12px;
+  }
+  .cascade-day-label {
+    font-size: 12px;
+    color: var(--gray-500);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
     margin-bottom: 4px;
   }
-  .ev-result-label { font-size: 13px; color: var(--gray-600); }
-  .ev-verdict {
-    margin-top: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--gray-800);
+  .cascade-prob {
+    font-size: 52px;
+    font-weight: 800;
+    color: var(--green-dark);
+    transition: color 0.5s;
+    margin-bottom: 4px;
+    line-height: 1;
   }
-  /* ── Commit puzzle ── */
-  .commit-prompt {
+  .cascade-prob.warn { color: #D97706; }
+  .cascade-prob.danger { color: #DC2626; }
+  .cascade-sublabel { font-size: 12px; color: var(--gray-400); }
+  .cascade-btn-row { display: flex; justify-content: center; margin-bottom: 16px; }
+  .cascade-insight {
+    display: none;
     font-size: 14px;
     line-height: 1.6;
-    color: var(--gray-800);
-    margin-bottom: 14px;
-  }
-  .commit-field { margin-bottom: 14px; }
-  .commit-field label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--gray-800);
-    margin-bottom: 6px;
-  }
-  .commit-field textarea {
-    width: 100%;
-    min-height: 80px;
-    padding: 10px 12px;
-    border: 1.5px solid var(--gray-200);
-    border-radius: 10px;
-    font: inherit;
-    font-size: 14px;
-    resize: vertical;
-    outline: none;
-    line-height: 1.6;
-  }
-  .commit-field textarea:focus { border-color: var(--green-mid); }
-  .commit-field select {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1.5px solid var(--gray-200);
-    border-radius: 10px;
-    font: inherit;
-    font-size: 14px;
-    outline: none;
+    color: var(--gray-700);
     background: white;
-    cursor: pointer;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 14px 16px;
   }
+  .cascade-insight.visible { display: block; }
+  .cascade-insight strong { color: var(--green-dark); }
   /* ── Complete state ── */
   .complete-box {
     text-align: center;
@@ -643,10 +551,10 @@ function render() {
   if (state.view === "login") renderLogin(body);
   else if (state.view === "dashboard") renderDashboard(body);
   else if (state.view === "lesson" && state.currentLessonId) {
-    const lesson = LESSONS.find(l => l.id === state.currentLessonId)!;
+    const lesson = LESSON_MAP[state.currentLessonId!];
     renderLesson(body, lesson);
   } else if (state.view === "lesson-complete" && state.currentLessonId) {
-    const lesson = LESSONS.find(l => l.id === state.currentLessonId)!;
+    const lesson = LESSON_MAP[state.currentLessonId!];
     renderComplete(body, lesson);
   }
 
@@ -660,7 +568,7 @@ function buildHeader(): HTMLElement {
 
   const logo = document.createElement("span");
   logo.className = "header-logo";
-  logo.textContent = "Probabilistic Thinking";
+  logo.textContent = "Affective Analytics";
 
   const title = document.createElement("span");
   title.className = "header-title";
@@ -670,7 +578,7 @@ function buildHeader(): HTMLElement {
 
   if (state.progress) {
     title.textContent = state.view === "lesson" || state.view === "lesson-complete"
-      ? (LESSONS.find(l => l.id === state.currentLessonId)?.title ?? "")
+      ? (LESSON_MAP[state.currentLessonId!]?.title ?? "")
       : "Your Progress";
     prog.textContent = `${state.progress.completedCount}/${state.progress.totalLessons}`;
   } else {
@@ -688,7 +596,7 @@ function buildHeader(): HTMLElement {
 function renderLogin(body: HTMLElement) {
   body.innerHTML = `
     <p class="login-eyebrow">ChatGPT-Native Course</p>
-    <h1 class="login-h1">Think in probabilities,<br>not certainties.</h1>
+    <h1 class="login-h1">Analytics that change<br>how you decide.</h1>
     <p class="login-sub">Enter the access token from your enrollment email to load your progress and pick up where you left off.</p>
     <div class="field">
       <label for="token-input">Access Token</label>
@@ -702,9 +610,13 @@ function renderLogin(body: HTMLElement) {
   const btn = body.querySelector<HTMLButtonElement>("#login-btn")!;
   const err = body.querySelector<HTMLElement>("#login-error")!;
 
-  // Restore saved token if available
-  const saved = window.openai?.widgetState?.token;
-  if (saved) input.value = saved;
+  // Restore saved token and auto-login if valid
+  const saved = window.openai?.widgetState?.token ?? localStorage.getItem("aa_token");
+  if (saved) {
+    input.value = saved;
+    // Auto-submit after a short delay so the UI renders first
+    setTimeout(() => btn.click(), 100);
+  }
 
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") btn.click(); });
 
@@ -726,6 +638,7 @@ function renderLogin(body: HTMLElement) {
     state.token = token;
     state.progress = result;
     state.view = "dashboard";
+    localStorage.setItem("aa_token", token);
     await window.openai?.setWidgetState?.({ token, view: "dashboard", lessonId: null });
     render();
   });
@@ -775,15 +688,17 @@ function renderDashboard(body: HTMLElement) {
 
       for (const lesson of mod.lessons) {
         const isCurrent = lesson.id === p.currentLesson;
-        const def = LESSONS.find(l => l.id === lesson.id);
+        const def = LESSON_MAP[lesson.id];
         const dotClass = lesson.completed ? "done" : isCurrent ? "current" : "upcoming";
         const labelClass = lesson.completed ? "done" : isCurrent ? "current" : "";
 
         const row = document.createElement("div");
         row.className = "lesson-row";
+        const comingSoon = !def && !lesson.completed;
         row.innerHTML = `
-          <div class="lesson-dot ${dotClass}">${lesson.completed ? "✓" : lesson.id}</div>
-          <span class="lesson-label ${labelClass}">${def?.title ?? lesson.id}</span>
+          <div class="lesson-dot ${comingSoon ? "upcoming" : dotClass}">${lesson.completed ? "✓" : lesson.id}</div>
+          <span class="lesson-label ${comingSoon ? "" : labelClass}">${def?.title ?? lesson.id}</span>
+          ${comingSoon ? `<span style="font-size:11px;color:#aaa;margin-left:auto;">Coming soon</span>` : ""}
         `;
 
         if (!lesson.completed && def) {
@@ -808,7 +723,7 @@ function renderDashboard(body: HTMLElement) {
   }
 
   // Continue bar
-  const currentLesson = LESSONS.find(l => l.id === p.currentLesson);
+  const currentLesson = LESSON_MAP[p.currentLesson];
   if (currentLesson) {
     const bar = document.createElement("div");
     bar.className = "continue-bar";
@@ -894,11 +809,8 @@ function renderLesson(body: HTMLElement, lesson: Lesson) {
   body.appendChild(completeBtn);
 
   // Render puzzle
-  if (lesson.puzzleType === "slider-certainty") renderSliderPuzzle(puzzleBox, completeBtn);
-  else if (lesson.puzzleType === "phrase-match") renderPhraseMatch(puzzleBox, completeBtn);
-  else if (lesson.puzzleType === "classify-bias") renderClassifyBias(puzzleBox, completeBtn);
-  else if (lesson.puzzleType === "ev-calc") renderEVCalc(puzzleBox, completeBtn);
-  else if (lesson.puzzleType === "commit") renderCommit(puzzleBox, completeBtn);
+  if (lesson.puzzleType === "belief-poll") renderBeliefPoll(puzzleBox, completeBtn);
+  else if (lesson.puzzleType === "risk-cascade") renderRiskCascade(puzzleBox, completeBtn);
 
   completeBtn.addEventListener("click", async () => {
     if (completeBtn.disabled) return;
@@ -908,294 +820,104 @@ function renderLesson(body: HTMLElement, lesson: Lesson) {
   });
 }
 
-// ─── Puzzle: Slider certainty (1.1) ──────────────────────────────────────────
+// ─── Puzzle: Belief Poll (1.1) ────────────────────────────────────────────────
 
-const SCENARIOS_11 = [
-  { text: `"I'm certain this product feature will delight users — we've done the research."`, label: "A product manager before launch" },
-  { text: `"There's no way this negotiation falls through — we've built great rapport."`, label: "A sales lead before a big deal" },
-  { text: `"I know exactly how long this will take — I've done projects like this before."`, label: "A developer estimating a task" },
-];
-
-function renderSliderPuzzle(box: HTMLElement, completeBtn: HTMLButtonElement) {
-  box.innerHTML = `<p style="font-size:14px;margin-bottom:18px;color:var(--gray-600);">Each statement below expresses certainty. Drag the slider to show what probability you'd <em>actually</em> assign to each outcome being true.</p>`;
-
-  const answered = new Set<number>();
-
-  SCENARIOS_11.forEach((s, idx) => {
-    const div = document.createElement("div");
-    div.className = "scenario";
-    div.innerHTML = `
-      <p class="scenario-text">${s.text}</p>
-      <p style="font-size:12px;color:var(--gray-400);margin-bottom:8px;">— ${s.label}</p>
-      <div class="slider-row">
-        <span class="slider-label">50%</span>
-        <input type="range" id="slider-${idx}" min="50" max="100" value="95" step="1" />
-        <span class="slider-val" id="val-${idx}">95%</span>
-      </div>
-    `;
-    box.appendChild(div);
-
-    const slider = div.querySelector<HTMLInputElement>(`#slider-${idx}`)!;
-    const val = div.querySelector<HTMLElement>(`#val-${idx}`)!;
-
-    slider.addEventListener("input", () => {
-      val.textContent = slider.value + "%";
-      answered.add(idx);
-      if (answered.size === SCENARIOS_11.length) {
-        const insight = document.getElementById("slider-insight");
-        if (insight) {
-          insight.style.display = "block";
-          completeBtn.disabled = false;
-        }
-      }
-    });
-  });
-
-  const insight = document.createElement("div");
-  insight.id = "slider-insight";
-  insight.style.cssText = "display:none;background:white;border:1.5px solid var(--green);border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.6;margin-top:4px;";
-  insight.innerHTML = `<strong style="color:var(--green);">Notice something?</strong><br>Even your "certain" beliefs probably landed between 70–95%, not at 100%. The gap between certainty and probability is where miscalibration lives. Naming that gap is the first step.`;
-  box.appendChild(insight);
-}
-
-// ─── Puzzle: Phrase match (1.2) ───────────────────────────────────────────────
-
-const PHRASES = [
-  { word: "Almost certain", research: "93%", ranges: ["0–20%", "20–40%", "40–60%", "60–80%", "80–100%"], correct: "80–100%" },
-  { word: "Probable", research: "71%", ranges: ["0–20%", "20–40%", "40–60%", "60–80%", "80–100%"], correct: "60–80%" },
-  { word: "Good chance", research: "68%", ranges: ["0–20%", "20–40%", "40–60%", "60–80%", "80–100%"], correct: "60–80%" },
-  { word: "Possible", research: "44%", ranges: ["0–20%", "20–40%", "40–60%", "60–80%", "80–100%"], correct: "40–60%" },
-  { word: "Unlikely", research: "15%", ranges: ["0–20%", "20–40%", "40–60%", "60–80%", "80–100%"], correct: "0–20%" },
-];
-
-function renderPhraseMatch(box: HTMLElement, completeBtn: HTMLButtonElement) {
-  box.innerHTML = `<p style="font-size:14px;margin-bottom:16px;color:var(--gray-600);">For each phrase, pick the probability range you think most people mean when they use it. Then see what research says.</p>`;
-
-  const grid = document.createElement("div");
-  grid.className = "phrase-grid";
-  box.appendChild(grid);
-
-  let answered = 0;
-
-  PHRASES.forEach((phrase) => {
-    const row = document.createElement("div");
-    row.className = "phrase-row";
-
-    const word = document.createElement("span");
-    word.className = "phrase-word";
-    word.textContent = `"${phrase.word}"`;
-
-    const select = document.createElement("select");
-    select.className = "phrase-select";
-    select.innerHTML = `<option value="">Pick a range…</option>` +
-      phrase.ranges.map(r => `<option value="${r}">${r}</option>`).join("");
-
-    const reveal = document.createElement("span");
-    reveal.className = "phrase-reveal";
-    reveal.textContent = `~${phrase.research} avg`;
-
-    select.addEventListener("change", () => {
-      if (!reveal.classList.contains("visible")) {
-        reveal.classList.add("visible");
-        answered++;
-        if (answered === PHRASES.length) completeBtn.disabled = false;
-      }
-    });
-
-    row.appendChild(word);
-    row.appendChild(select);
-    row.appendChild(reveal);
-    grid.appendChild(row);
-  });
-
-  const note = document.createElement("p");
-  note.style.cssText = "font-size:13px;color:var(--gray-400);margin-top:14px;font-style:italic;";
-  note.textContent = "Research values from Sherman Kent's probability word studies. Select all five to reveal what researchers found.";
-  box.appendChild(note);
-}
-
-// ─── Puzzle: Classify bias (1.3) ──────────────────────────────────────────────
-
-const CLASSIFY_SCENARIOS = [
-  {
-    text: `Alex said he was 90% confident his presentation would go well. He gave 10 presentations with that confidence — 9 went well, 1 bombed.`,
-    answer: "well-calibrated",
-    feedback: "When 90% confidence matches a 90% hit rate, that's good calibration.",
-  },
-  {
-    text: `Sarah said she was 95% confident her startup would close a funding round. Out of 20 founders who said the same thing with the same confidence, only 8 closed.`,
-    answer: "overconfident",
-    feedback: "95% confidence with a ~40% base rate = overconfidence. The gap is the problem.",
-  },
-  {
-    text: `Marcus says he's "50-50" on whether his code is correct before testing. In reality, his code passes tests 85% of the time.`,
-    answer: "underconfident",
-    feedback: "50% stated confidence with 85% accuracy = underconfidence. He knows more than he thinks.",
-  },
-  {
-    text: `Priya predicted a 70% chance of rain before checking any forecast, and it rained 7 out of 10 times she made that prediction.`,
-    answer: "well-calibrated",
-    feedback: "70% confidence matching a 70% hit rate. That's what calibration looks like.",
-  },
-];
-
-function renderClassifyBias(box: HTMLElement, completeBtn: HTMLButtonElement) {
-  box.innerHTML = `<p style="font-size:14px;margin-bottom:16px;color:var(--gray-600);">Read each scenario and classify the person's predictions.</p>`;
-
-  let answered = 0;
-
-  CLASSIFY_SCENARIOS.forEach((s) => {
-    const div = document.createElement("div");
-    div.className = "scenario-classify";
-
-    const text = document.createElement("p");
-    text.className = "scenario-classify-text";
-    text.textContent = s.text;
-
-    const opts = document.createElement("div");
-    opts.className = "classify-opts";
-
-    const feedback = document.createElement("p");
-    feedback.className = "classify-feedback";
-
-    const labels: Record<string, string> = {
-      "overconfident": "Overconfident",
-      "underconfident": "Underconfident",
-      "well-calibrated": "Well-calibrated",
-    };
-
-    let selected = false;
-    for (const [key, label] of Object.entries(labels)) {
-      const btn = document.createElement("button");
-      btn.className = "classify-btn";
-      btn.textContent = label;
-      btn.dataset["value"] = key;
-
-      btn.addEventListener("click", () => {
-        if (selected) return;
-        selected = true;
-        answered++;
-
-        const isCorrect = key === s.answer;
-        btn.className = "classify-btn " + (isCorrect ? "correct" : "wrong");
-
-        // Show correct if wrong
-        if (!isCorrect) {
-          const correctBtn = opts.querySelector<HTMLButtonElement>(`[data-value="${s.answer}"]`);
-          if (correctBtn) correctBtn.className = "classify-btn correct";
-        }
-
-        feedback.textContent = s.feedback;
-
-        // Disable all buttons in this group
-        opts.querySelectorAll<HTMLButtonElement>(".classify-btn").forEach(b => { b.disabled = true; });
-
-        if (answered === CLASSIFY_SCENARIOS.length) completeBtn.disabled = false;
-      });
-
-      opts.appendChild(btn);
-    }
-
-    div.appendChild(text);
-    div.appendChild(opts);
-    div.appendChild(feedback);
-    box.appendChild(div);
-  });
-}
-
-// ─── Puzzle: EV Calc (1.4) ────────────────────────────────────────────────────
-
-function renderEVCalc(box: HTMLElement, completeBtn: HTMLButtonElement) {
+function renderBeliefPoll(box: HTMLElement, completeBtn: HTMLButtonElement) {
   box.innerHTML = `
-    <div class="ev-scenario">
-      <strong>The decision:</strong> You're evaluating whether to launch a new product. If it succeeds, you net $500k. If it fails, you lose $100k in sunk costs. You estimate a 40% chance of success. Should you launch?
+    <p class="belief-question">A factory floor displays a "Days Since Last Incident" counter. It's been on a 30-day streak with no accidents. What happens to the probability of an incident tomorrow?</p>
+    <div class="belief-opts">
+      <button class="belief-opt" data-answer="down">📉 Risk goes down — the streak proves the safety culture is working</button>
+      <button class="belief-opt" data-answer="same">➡️ Stays the same — yesterday's record doesn't change tomorrow's odds</button>
+      <button class="belief-opt" data-answer="up">📈 Risk goes up — pressure builds, complacency creeps in</button>
     </div>
-    <p style="font-size:13px;color:var(--gray-600);margin-bottom:14px;">Adjust the inputs if you want to explore different scenarios, then calculate.</p>
-    <div class="ev-inputs">
-      <div class="ev-row">
-        <span class="ev-label">Probability of success (%)</span>
-        <input type="number" class="ev-input" id="ev-prob" value="40" min="0" max="100" />
+    <div class="belief-reveal" id="belief-reveal">
+      <div class="gauge-wrap">
+        <div class="gauge-label">Risk level over streak duration</div>
+        <div class="gauge-bar-track"><div class="gauge-bar-fill" id="gauge-fill"></div></div>
+        <div class="gauge-days"><span>Day 0</span><span>Day 15</span><span>Day 30+</span></div>
       </div>
-      <div class="ev-row">
-        <span class="ev-label">Payoff if success ($)</span>
-        <input type="number" class="ev-input" id="ev-win" value="500000" step="1000" />
+      <div class="gauge-insight">
+        <strong>The answer is "up" — and often dramatically so.</strong><br><br>
+        Long streaks don't just create complacency. They create false confidence in a system that may have just been lucky. The 2023 Maui wildfire burned through a region with a strong recent safety record. The counter said "safe." The risk model said otherwise.<br><br>
+        <em>Recency bias makes the recent past feel like a guarantee of the future. It isn't.</em>
       </div>
-      <div class="ev-row">
-        <span class="ev-label">Loss if failure ($)</span>
-        <input type="number" class="ev-input" id="ev-lose" value="100000" step="1000" />
-      </div>
-    </div>
-    <button class="btn-secondary" id="calc-btn" style="margin-bottom:16px;">Calculate EV</button>
-    <div class="ev-result" id="ev-result">
-      <div class="ev-result-num" id="ev-num">—</div>
-      <div class="ev-result-label">Expected value of launching</div>
-      <div class="ev-verdict" id="ev-verdict"></div>
     </div>
   `;
 
-  const calcBtn = box.querySelector<HTMLButtonElement>("#calc-btn")!;
-  const result = box.querySelector<HTMLElement>("#ev-result")!;
-  const evNum = box.querySelector<HTMLElement>("#ev-num")!;
-  const verdict = box.querySelector<HTMLElement>("#ev-verdict")!;
+  const opts = box.querySelectorAll<HTMLButtonElement>(".belief-opt");
+  const reveal = box.querySelector<HTMLElement>("#belief-reveal")!;
+  const gaugeFill = box.querySelector<HTMLElement>("#gauge-fill")!;
 
-  calcBtn.addEventListener("click", () => {
-    const p = parseFloat((box.querySelector<HTMLInputElement>("#ev-prob")!).value) / 100;
-    const win = parseFloat((box.querySelector<HTMLInputElement>("#ev-win")!).value);
-    const lose = parseFloat((box.querySelector<HTMLInputElement>("#ev-lose")!).value);
-
-    const ev = p * win - (1 - p) * lose;
-    evNum.textContent = (ev >= 0 ? "+" : "") + "$" + Math.round(ev).toLocaleString();
-    evNum.style.color = ev >= 0 ? "var(--green)" : "#B91C1C";
-
-    verdict.textContent = ev > 0
-      ? `EV is positive — launching is the better bet. But consider your risk tolerance: can you absorb the loss if it fails?`
-      : `EV is negative — the numbers don't favor launching at this probability. What would need to change to make it worth it?`;
-
-    result.classList.add("visible");
-    completeBtn.disabled = false;
-  });
-}
-
-// ─── Puzzle: Commit (1.5) ─────────────────────────────────────────────────────
-
-function renderCommit(box: HTMLElement, completeBtn: HTMLButtonElement) {
-  box.innerHTML = `
-    <p class="commit-prompt">The test of whether this landed is whether you'll use it. Name one real decision coming up where you'll apply probabilistic thinking.</p>
-    <div class="commit-field">
-      <label for="commit-decision">The decision I'll apply this to:</label>
-      <textarea id="commit-decision" placeholder="e.g. 'Deciding whether to take on a new client next month…'"></textarea>
-    </div>
-    <div class="commit-field">
-      <label for="commit-tool">The tool I'll use:</label>
-      <select id="commit-tool">
-        <option value="">Choose one…</option>
-        <option value="probability">Express my confidence as a probability (not certainty)</option>
-        <option value="ev">Calculate the expected value of each option</option>
-        <option value="both">Both — probability + expected value</option>
-        <option value="calibration">Check my calibration against past predictions</option>
-      </select>
-    </div>
-  `;
-
-  const textarea = box.querySelector<HTMLTextAreaElement>("#commit-decision")!;
-  const select = box.querySelector<HTMLSelectElement>("#commit-tool")!;
-
-  const check = () => {
-    if (textarea.value.trim().length > 20 && select.value) {
+  opts.forEach(btn => {
+    btn.addEventListener("click", () => {
+      opts.forEach(b => b.disabled = true);
+      const isCorrect = btn.dataset.answer === "up";
+      btn.classList.add(isCorrect ? "selected" : "wrong");
+      if (!isCorrect) {
+        const correct = box.querySelector<HTMLButtonElement>('[data-answer="up"]');
+        if (correct) correct.classList.add("selected");
+      }
+      reveal.classList.add("visible");
+      setTimeout(() => { gaugeFill.style.width = "82%"; }, 100);
       completeBtn.disabled = false;
-    } else {
-      completeBtn.disabled = true;
-    }
-  };
+    });
+  });
+}
 
-  textarea.addEventListener("input", check);
-  select.addEventListener("change", check);
+// ─── Puzzle: Risk Cascade (1.2) ───────────────────────────────────────────────
+
+function renderRiskCascade(box: HTMLElement, completeBtn: HTMLButtonElement) {
+  let day = 0;
+  let prob = 1.0;
+
+  box.innerHTML = `
+    <p class="cascade-setup">Your project has <strong>10 tasks</strong>. Each one has a <strong>10% chance of slipping</strong> by at least a day. Click through each task to see what happens to your on-time odds.</p>
+    <div class="cascade-display">
+      <div class="cascade-day-label" id="cascade-day-label">Before we start</div>
+      <div class="cascade-prob" id="cascade-prob">100%</div>
+      <div class="cascade-sublabel">chance of finishing on time</div>
+    </div>
+    <div class="cascade-btn-row">
+      <button class="btn-primary" id="cascade-next">Complete Task 1 →</button>
+    </div>
+    <div class="cascade-insight" id="cascade-insight">
+      <strong>After 10 tasks: only 34.9% on-time.</strong><br><br>
+      Each task looked fine in isolation — just a 10% slip risk. But ten of them chained together? You've lost two thirds of your buffer before a single delay happens on purpose.<br><br>
+      This is why every project is "two weeks away." The schedule isn't lying. The model is. Burndown charts assume each task is safe and independent — they don't compound the risk.
+    </div>
+  `;
+
+  const dayLabel = box.querySelector<HTMLElement>("#cascade-day-label")!;
+  const probDisplay = box.querySelector<HTMLElement>("#cascade-prob")!;
+  const nextBtn = box.querySelector<HTMLButtonElement>("#cascade-next")!;
+  const insight = box.querySelector<HTMLElement>("#cascade-insight")!;
+
+  nextBtn.addEventListener("click", () => {
+    day++;
+    prob *= 0.9;
+    const pct = (prob * 100).toFixed(1);
+    probDisplay.textContent = pct + "%";
+    dayLabel.textContent = `After task ${day}`;
+
+    probDisplay.className = "cascade-prob";
+    if (prob < 0.5) probDisplay.classList.add("danger");
+    else if (prob < 0.75) probDisplay.classList.add("warn");
+
+    if (day < 10) {
+      nextBtn.textContent = `Complete Task ${day + 1} →`;
+    } else {
+      nextBtn.disabled = true;
+      nextBtn.textContent = "All tasks done";
+      insight.classList.add("visible");
+      completeBtn.disabled = false;
+    }
+  });
 }
 
 // ─── Complete view ────────────────────────────────────────────────────────────
 
 function renderComplete(body: HTMLElement, lesson: Lesson) {
-  const isLastInModule = lesson.id === "1.5";
+  const isLastInModule = lesson.id === "1.4" || lesson.id === "2.4" || lesson.id === "3.4";
   body.innerHTML = `
     <div class="complete-box">
       <div class="checkmark">✓</div>
@@ -1225,24 +947,7 @@ function renderComplete(body: HTMLElement, lesson: Lesson) {
 }
 
 async function sendHandoff(lesson: Lesson) {
-  const nextLesson = LESSONS.find(l => {
-    const parts = lesson.id.split(".");
-    const nextId = `${parts[0]}.${parseInt(parts[1]) + 1}`;
-    return l.id === nextId;
-  });
-
-  const prompt = `
-I just completed lesson ${lesson.id}: "${lesson.title}" in the Probabilistic Thinking course.
-
-Here's the concept I studied:
-${lesson.concept}
-
-I completed the interactive exercise for this lesson.
-
-${nextLesson ? `The next lesson is ${nextLesson.id}: "${nextLesson.title}".` : `This was the final lesson in Module 1.`}
-
-Please act as my Socratic tutor for this concept. Ask me one question to check whether I genuinely understood the key idea — don't re-explain the concept, just probe my understanding. If I get it right, affirm specifically what I got right. If I miss the point, push back with a follow-up question rather than just explaining it again.
-`.trim();
+  const prompt = `I just finished the "${lesson.title}" exercise in my Affective Analytics course. Ask me one sharp question to test whether I actually understood it. After I answer, tell me what I got right or what I missed — then ask: "Want to dig deeper into this, or relaunch the course for the next lesson?" If I say relaunch (or anything like next, continue, move on), call open_course. If I want to dig deeper, keep going — but always end that thread by asking the same question again.`.trim();
 
   await window.openai?.sendFollowUpMessage?.({ prompt, scrollToBottom: true });
 }
@@ -1284,14 +989,15 @@ async function markComplete(lesson: Lesson): Promise<void> {
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 
 app.ontoolresult = async () => {
-  const saved = window.openai?.widgetState;
-  if (saved?.token) {
-    const progress = await loadProgress(saved.token);
+  const savedToken = window.openai?.widgetState?.token ?? localStorage.getItem("aa_token");
+  if (savedToken) {
+    const progress = await loadProgress(savedToken);
     if (progress) {
-      state.token = saved.token;
+      state.token = savedToken;
       state.progress = progress;
-      state.currentLessonId = saved.lessonId ?? null;
-      state.view = (saved.view as View) ?? "dashboard";
+      const ws = window.openai?.widgetState;
+      state.currentLessonId = ws?.lessonId ?? null;
+      state.view = (ws?.view as View) ?? "dashboard";
       render();
       return;
     }

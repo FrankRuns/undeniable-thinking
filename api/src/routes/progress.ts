@@ -40,7 +40,7 @@ router.get("/", async (req: Request, res: Response) => {
     email: user.email,
     currentLesson: user.currentLesson,
     completedCount: completedIds.length,
-    totalLessons: 31,
+    totalLessons: 12,
     modules: modulesWithStatus,
   });
 });

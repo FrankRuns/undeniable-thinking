@@ -110,12 +110,9 @@ export async function getAllUsers(): Promise<UserRecord[]> {
 // ─── Curriculum ───────────────────────────────────────────────────────────────
 
 export const CURRICULUM = [
-  { module: 1, title: "Mental Models for Uncertainty",        lessons: ["1.1","1.2","1.3","1.4","1.5"] },
-  { module: 2, title: "Calibration and Overconfidence",       lessons: ["2.1","2.2","2.3","2.4","2.5","2.6"] },
-  { module: 3, title: "Decision Trees and Expected Value",    lessons: ["3.1","3.2","3.3","3.4","3.5"] },
-  { module: 4, title: "Bayesian Reasoning",                   lessons: ["4.1","4.2","4.3","4.4","4.5","4.6"] },
-  { module: 5, title: "Reference Class Forecasting",          lessons: ["5.1","5.2","5.3","5.4"] },
-  { module: 6, title: "Communicating Probabilistic Thinking", lessons: ["6.1","6.2","6.3","6.4","6.5"] },
+  { module: 1, title: "Your Numbers Are Lying To You", lessons: ["1.1","1.2","1.3","1.4"] },
+  { module: 2, title: "Simple Usually Wins",           lessons: ["2.1","2.2","2.3","2.4"] },
+  { module: 3, title: "The Model Is Not The World",    lessons: ["3.1","3.2","3.3","3.4"] },
 ];
 
 export function getNextLesson(current: string): string | null {

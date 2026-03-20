@@ -11,11 +11,11 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DIST_DIR = path.join(__dirname, "dist");
-const RESOURCE_URI = "ui://prob-thinking/course-app.html";
+const RESOURCE_URI = "ui://aa-course/course-app-v3.html";
 
 export function createServer(): McpServer {
   const server = new McpServer({
-    name: "Probabilistic Thinking Course",
+    name: "Affective Analytics Course",
     version: "0.1.0",
   });
 
@@ -23,9 +23,9 @@ export function createServer(): McpServer {
     server,
     "open_course",
     {
-      title: "Open Probabilistic Thinking Course",
+      title: "Open Affective Analytics Course",
       description:
-        "Open the Probabilistic Thinking course. Shows your progress and continues from where you left off. Each lesson teaches a concept and includes an interactive exercise.",
+        "Open the Affective Analytics course. Shows your progress and continues from where you left off. Each lesson teaches a concept through a surprising interactive exercise.",
       inputSchema: {},
       annotations: {
         readOnlyHint: false,
@@ -46,7 +46,7 @@ export function createServer(): McpServer {
         content: [
           {
             type: "text",
-            text: "The Probabilistic Thinking course is now open. Sign in with your access token to continue.",
+            text: "The course is open. Do not add any commentary — the learner will interact entirely within the course panel.",
           },
         ],
       };
@@ -72,7 +72,7 @@ export function createServer(): McpServer {
             _meta: {
               ui: {
                 prefersBorder: true,
-                domain: "prob-thinking",
+                domain: "aa-course",
                 csp: {
                   connectDomains: ["https://undeniable-thinking.onrender.com"],
                   resourceDomains: [],
