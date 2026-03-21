@@ -5,8 +5,9 @@
   "type": "module",
   "description": "Probabilistic Thinking course as a ChatGPT App",
   "scripts": {
-    "build": "tsc --noEmit && tsc -p tsconfig.server.json && cross-env INPUT=course-app.html vite build",
-    "start": "concurrently \"cross-env NODE_ENV=development INPUT=course-app.html vite build --watch\" \"tsx watch main.ts\"",
+    "build": "tsc --noEmit && tsc -p tsconfig.server.json && cross-env INPUT=mcp-app.html vite build",
+    "serve": "tsx watch main.ts",
+    "start": "concurrently \"cross-env NODE_ENV=development INPUT=mcp-app.html vite build --watch\" \"tsx watch main.ts\"",
     "dev": "npm run start"
   },
   "dependencies": {

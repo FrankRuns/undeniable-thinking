@@ -7,28 +7,36 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { z } from "zod";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DIST_DIR = path.join(__dirname, "dist");
-const RESOURCE_URI = "ui://aa-course/course-app-v3.html";
+const RESOURCE_URI = "ui://probabilistic-thinking/mcp-app-v1.html";
 
 export function createServer(): McpServer {
   const server = new McpServer({
-    name: "Affective Analytics Course",
-    version: "0.1.0",
+    name: "Probabilistic Thinking",
+    version: "1.0.0",
   });
+
+  const courseInputSchema = {
+    lessonIndex: z.number().min(0).max(3).default(0).optional(),
+    role: z.string().optional(),
+    domain: z.string().optional(),
+    challenge: z.string().optional(),
+  };
 
   registerAppTool(
     server,
-    "open_course",
+    "open-probabilistic-thinking",
     {
-      title: "Open Affective Analytics Course",
+      title: "Open Probabilistic Thinking",
       description:
-        "Open the Affective Analytics course. Shows your progress and continues from where you left off. Each lesson teaches a concept through a surprising interactive exercise.",
-      inputSchema: {},
+        "Launch the Probabilistic Thinking course — an interactive, personalized learning experience that teaches learners to reason under uncertainty. The course opens with a compelling hook, gathers context through a short conversation, then delivers 4 visually interactive lessons adapted to the learner's role, domain, and key decisions.",
+      inputSchema: courseInputSchema,
       annotations: {
-        readOnlyHint: false,
+        readOnlyHint: true,
         openWorldHint: false,
         destructiveHint: false,
       },
@@ -36,17 +44,23 @@ export function createServer(): McpServer {
         ui: {
           resourceUri: RESOURCE_URI,
         },
-        "openai/toolInvocation/invoking": "Opening your course…",
-        "openai/toolInvocation/invoked": "Course ready.",
+        "openai/toolInvocation/invoking": "Opening Probabilistic Thinking…",
+        "openai/toolInvocation/invoked": "Probabilistic Thinking ready.",
       },
     },
-    async () => {
+    async (args: z.infer<z.ZodObject<typeof courseInputSchema>>) => {
       return {
-        structuredContent: {},
+        structuredContent: {
+          phase: args.lessonIndex != null && args.lessonIndex > 0 ? "lesson" : "hook",
+          lessonIndex: args.lessonIndex ?? 0,
+          role: args.role ?? "",
+          domain: args.domain ?? "",
+          challenge: args.challenge ?? "",
+        },
         content: [
           {
             type: "text",
-            text: "The course is open. Do not add any commentary — the learner will interact entirely within the course panel.",
+            text: "Probabilistic Thinking course launched. The learner will see the intro, share their context, then work through 4 personalized interactive lessons.",
           },
         ],
       };
@@ -59,10 +73,7 @@ export function createServer(): McpServer {
     RESOURCE_URI,
     { mimeType: RESOURCE_MIME_TYPE },
     async () => {
-      const html = await fs.readFile(
-        path.join(DIST_DIR, "course-app.html"),
-        "utf-8",
-      );
+      const html = await fs.readFile(path.join(DIST_DIR, "mcp-app.html"), "utf-8");
       return {
         contents: [
           {
@@ -72,10 +83,10 @@ export function createServer(): McpServer {
             _meta: {
               ui: {
                 prefersBorder: true,
-                domain: "aa-course",
+                domain: "probabilistic-thinking",
                 csp: {
-                  connectDomains: ["https://undeniable-thinking.onrender.com"],
-                  resourceDomains: [],
+                  connectDomains: [],
+                  resourceDomains: ["https://cdn.plot.ly"],
                 },
               },
             },
